@@ -8,6 +8,8 @@ type NonBidReason int
 const (
 	NoBidUnknownError                      NonBidReason = 0   // No Bid - General
 	ResponseRejectedCategoryMappingInvalid NonBidReason = 303 // Response Rejected - Category Mapping Invalid
+	ResponseRejectedBelowAuctionFloor      NonBidReason = 301 // Response Rejected - Below Floor
+	ResponseRejectedBelowDealFloor         NonBidReason = 304 // Response Rejected - Bid was Below Deal Floor
 )
 
 // Ptr returns pointer to own value.

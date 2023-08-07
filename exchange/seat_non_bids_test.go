@@ -45,7 +45,7 @@ func TestSeatNonBidsAdd(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			snb := &nonBids{
+			snb := &NonBids{
 				seatNonBidsMap: tt.fields.seatNonBidsMap,
 			}
 			snb.addBid(tt.args.bid, tt.args.nonBidReason, tt.args.seat)
@@ -56,7 +56,7 @@ func TestSeatNonBidsAdd(t *testing.T) {
 
 func TestSeatNonBidsGet(t *testing.T) {
 	type fields struct {
-		snb *nonBids
+		snb *NonBids
 	}
 	tests := []struct {
 		name   string
@@ -65,7 +65,7 @@ func TestSeatNonBidsGet(t *testing.T) {
 	}{
 		{
 			name:   "get-seat-nonbids",
-			fields: fields{&nonBids{sampleSeatNonBidMap("bidder1", 2)}},
+			fields: fields{&NonBids{sampleSeatNonBidMap("bidder1", 2)}},
 			want:   sampleSeatBids("bidder1", 2),
 		},
 		{

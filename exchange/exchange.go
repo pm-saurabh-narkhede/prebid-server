@@ -380,7 +380,7 @@ func (e *exchange) HoldAuction(ctx context.Context, r *AuctionRequest, debugLog 
 		auc            *auction
 		cacheErrs      []error
 		bidResponseExt *openrtb_ext.ExtBidResponse
-		seatNonBids    = nonBids{}
+		seatNonBids    = NonBids{}
 	)
 
 	if anyBidsReturned {
@@ -394,6 +394,14 @@ func (e *exchange) HoldAuction(ctx context.Context, r *AuctionRequest, debugLog 
 				errs = append(errs, &errortypes.Warning{
 					Message:     fmt.Sprintf("%s bid id %s rejected - bid price %.4f %s is less than bid floor %.4f %s for imp %s", rejectedBid.Seat, rejectedBid.Bids[0].Bid.ID, rejectedBid.Bids[0].Bid.Price, rejectedBid.Currency, rejectedBid.Bids[0].BidFloors.FloorValue, rejectedBid.Bids[0].BidFloors.FloorCurrency, rejectedBid.Bids[0].Bid.ImpID),
 					WarningCode: errortypes.FloorBidRejectionWarningCode})
+
+				for _, bid := range rejectedBid.Bids {
+					var rejectionReason = ResponseRejectedBelowAuctionFloor
+					if bid.Bid.DealID != "" {
+						rejectionReason = ResponseRejectedBelowDealFloor
+					}
+					seatNonBids.addBid(bid, int(rejectionReason), rejectedBid.Seat)
+				}
 			}
 		}
 
@@ -916,7 +924,7 @@ func encodeBidResponseExt(bidResponseExt *openrtb_ext.ExtBidResponse) ([]byte, e
 	return buffer.Bytes(), err
 }
 
-func applyCategoryMapping(ctx context.Context, targeting openrtb_ext.ExtRequestTargeting, seatBids map[openrtb_ext.BidderName]*entities.PbsOrtbSeatBid, categoriesFetcher stored_requests.CategoryFetcher, targData *targetData, booleanGenerator deduplicateChanceGenerator, seatNonBids *nonBids) (map[string]string, map[openrtb_ext.BidderName]*entities.PbsOrtbSeatBid, []string, error) {
+func applyCategoryMapping(ctx context.Context, targeting openrtb_ext.ExtRequestTargeting, seatBids map[openrtb_ext.BidderName]*entities.PbsOrtbSeatBid, categoriesFetcher stored_requests.CategoryFetcher, targData *targetData, booleanGenerator deduplicateChanceGenerator, seatNonBids *NonBids) (map[string]string, map[openrtb_ext.BidderName]*entities.PbsOrtbSeatBid, []string, error) {
 	res := make(map[string]string)
 
 	type bidDedupe struct {
@@ -978,7 +986,6 @@ func applyCategoryMapping(ctx context.Context, targeting openrtb_ext.ExtRequestT
 					//on receiving bids from adapters if no unique IAB category is returned  or if no ad server category is returned discard the bid
 					bidsToRemove = append(bidsToRemove, bidInd)
 					rejections = updateRejections(rejections, bidID, "Bid did not contain a category")
-					seatNonBids.addBid(bid, int(ResponseRejectedCategoryMappingInvalid), string(bidderName))
 					continue
 				}
 				if translateCategories {
@@ -1082,6 +1089,7 @@ func applyCategoryMapping(ctx context.Context, targeting openrtb_ext.ExtRequestT
 				bids := seatBid.Bids
 				for i := len(bidsToRemove) - 1; i >= 0; i-- {
 					remInd := bidsToRemove[i]
+					seatNonBids.addBid(bids[remInd], int(ResponseRejectedCategoryMappingInvalid), string(bidderName))
 					bids = append(bids[:remInd], bids[remInd+1:]...)
 				}
 				seatBid.Bids = bids
@@ -1566,7 +1574,7 @@ func setErrorMessageSecureMarkup(validationType string) string {
 }
 
 // setSeatNonBid adds SeatNonBids within bidResponse.Ext.Prebid.SeatNonBid
-func setSeatNonBid(bidResponseExt *openrtb_ext.ExtBidResponse, seatNonBids nonBids) *openrtb_ext.ExtBidResponse {
+func setSeatNonBid(bidResponseExt *openrtb_ext.ExtBidResponse, seatNonBids NonBids) *openrtb_ext.ExtBidResponse {
 	if len(seatNonBids.seatNonBidsMap) == 0 {
 		return bidResponseExt
 	}

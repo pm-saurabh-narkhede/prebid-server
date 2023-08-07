@@ -5,12 +5,12 @@ import (
 	"github.com/prebid/prebid-server/openrtb_ext"
 )
 
-type nonBids struct {
+type NonBids struct {
 	seatNonBidsMap map[string][]openrtb_ext.NonBid
 }
 
 // addBid is not thread safe as we are initializing and writing to map
-func (snb *nonBids) addBid(bid *entities.PbsOrtbBid, nonBidReason int, seat string) {
+func (snb *NonBids) addBid(bid *entities.PbsOrtbBid, nonBidReason int, seat string) {
 	if bid == nil || bid.Bid == nil {
 		return
 	}
@@ -40,7 +40,7 @@ func (snb *nonBids) addBid(bid *entities.PbsOrtbBid, nonBidReason int, seat stri
 	snb.seatNonBidsMap[seat] = append(snb.seatNonBidsMap[seat], nonBid)
 }
 
-func (snb *nonBids) get() []openrtb_ext.SeatNonBid {
+func (snb *NonBids) get() []openrtb_ext.SeatNonBid {
 	if snb == nil {
 		return nil
 	}
